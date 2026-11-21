@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to Trading Blueprints</title>
+  <style>
+    :root {
+      --gold: #ffd700;
+      --silver: #e2e8f0;
+      --cyan: #38bdf8;
+      --pink: #f472b6;
+      --purple: #a855f7;
+      --card: rgba(15, 20, 38, 0.85);
+    }
+    * { box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: #f8fafc;
+      background: radial-gradient(circle at top left, #1e1b4b, #090d16 55%, #271c05);
+      overflow-x: hidden;
+      perspective: 1200px;
+    }
+    #bgCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 20px 14px 90px;
+    }
+    .box {
+      background: var(--card);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 215, 0, 0.28);
+      border-radius: 20px;
+      padding: 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55), inset 0 0 18px rgba(255, 215, 0, 0.06);
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
+    }
+    .plan-card {
+      transform-style: preserve-3d;
+      cursor: pointer;
+    }
+    .plan-card:hover, .plan-card.active-3d {
+      transform: translateY(-8px) rotateX(4deg) rotateY(-3deg) scale(1.02);
+      border-color: var(--gold);
+      box-shadow: 0 25px 50px rgba(255, 215, 0, 0.22), 0 0 25px rgba(168, 85, 247, 0.25);
+    }
+    .center { text-align: center; }
+    .tag {
+      display: inline-block;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      background: linear-gradient(90deg, rgba(255,215,0,0.18), rgba(226,232,240,0.18));
+      color: var(--gold);
+      border: 1px solid var(--gold);
+      margin-bottom: 8px;
+    }
+    h1 {
+      margin: 6px 0;
+      font-size: 28px;
+      background: linear-gradient(90deg, #ffd700, #ffffff, #38bdf8, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p { color: #cbd5e1; line-height: 1.55; margin: 8px 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+    .price {
+      font-size: 30px;
+      font-weight: 900;
+      background: linear-gradient(90deg, #ffd700, #e2e8f0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin: 8px 0;
+    }
+    ul { padding-left: 18px; color: #e2e8f0; font-size: 14px; line-height: 1.55; }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 12px 14px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      transition: transform 0.15s ease;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-gold {
+      background: linear-gradient(135deg, #ffd700, #f59e0b, #e2e8f0);
+      color: #090d16;
+    }
+    .btn-green { background: linear-gradient(135deg, #22c55e, #10b981); color: #052e16; }
+    .btn-gray { background: #334155; color: #fff; }
+    input {
+      width: 100%;
+      padding: 11px 12px;
+      margin-top: 8px;
+      border-radius: 10px;
+      border: 1px solid #475569;
+      background: #060b16;
+      color: #fff;
+    }
+    .qr-box {
+      background: #fff;
+      color: #0f172a;
+      max-width: 230px;
+      margin: 14px auto;
+      padding: 12px;
+      border-radius: 14px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(255, 215, 0, 0.25);
+    }
+    .qr-box img { width: 100%; max-width: 195px; display: block; margin: 0 auto 6px; }
+    .msg { color: #fde047; font-size: 13.5px; margin-top: 8px; font-weight: 600; }
+    #filesArea { display: none; margin-top: 14px; }
+    .cred-box {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid #22c55e;
+      padding: 12px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      color: #bbf7d0;
+      font-size: 14px;
+    }
+    .disclaimer-box {
+      border-color: rgba(244, 114, 182, 0.45);
+      background: rgba(30, 15, 28, 0.85);
+      font-size: 13.5px;
+    }
+    .welcome-toast {
+      background: linear-gradient(90deg, rgba(255,215,0,0.16), rgba(56,189,248,0.16), rgba(244,114,182,0.16));
+      border: 1px solid var(--gold);
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .controls-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2, 6, 23, 0.82);
+      backdrop-filter: blur(8px);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .modal-card {
+      background: #0f172a;
+      border: 2px solid var(--gold);
+      border-radius: 22px;
+      max-width: 420px;
+      width: 100%;
+      padding: 22px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75);
+      animation: pop3D 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes pop3D {
+      from { opacity: 0; transform: scale(0.85) rotateX(15deg); }
+      to { opacity: 1; transform: scale(1) rotateX(0deg); }
+    }
+    .chat-fab {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 40;
+      background: linear-gradient(135deg, #ffd700, #f472b6);
+      color: #090d16;
+      border: none;
+      border-radius: 999px;
+      padding: 13px 20px;
+      font-weight: 900;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(255, 215, 0, 0.4);
+    }
+    .chat-panel {
+      display: none;
+      position: fixed;
+      bottom: 76px;
+      right: 20px;
+      width: 340px;
+      max-width: calc(100vw - 32px);
+      background: #0b1120;
+      border: 1px solid var(--gold);
+      border-radius: 18px;
+      z-index: 45;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.75);
+    }
+    .chat-head {
+      background: linear-gradient(90deg, #ffd700, #e2e8f0);
+      color: #090d16;
+      padding: 12px 14px;
+      font-weight: 900;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-body {
+      max-height: 280px;
+      overflow-y: auto;
+      padding: 12px;
+      font-size: 13.5px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .bot-msg {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 10px 12px;
+      border-radius: 12px;
+      color: #f1f5f9;
+      line-height: 1.45;
+    }
+    .chat-quick {
+      padding: 10px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .chip {
+      background: rgba(255, 215, 0, 0.15);
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      color: #fde047;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body onclick="startPortalAudio()">
+  <!-- Continuous Looping Background Song -->
+  <audio id="portalSong" src="song.mp3" autoplay loop preload="auto"></audio>
+
+  <canvas id="bgCanvas"></canvas>
+
+  <div class="wrap">
+    <!-- Namaste Welcome Banner + Audio Controls -->
+    <div class="welcome-toast">
+      <div>
+        <strong style="color:#ffd700; font-size:15px;">🙏 Namaste! Trading Blueprints mein aapka swagat hai.</strong>
+        <div style="font-size:13px; color:#e2e8f0;">
+          Fresher se Intermediate tak structured price-action aur risk-management learning portal.
+        </div>
+      </div>
+      <div class="controls-row">
+        <button class="chip" type="button" onclick="event.stopPropagation(); speakNamaste()">🔊 Namaste Voice</button>
+        <button class="chip" type="button" id="musicToggleBtn" onclick="event.stopPropagation(); toggleSong()">🎵 Music: ON</button>
+      </div>
+    </div>
+
+    <!-- Hero Box -->
+    <div class="box center">
+      <div class="tag">PREMIUM 3D LEARNING PORTAL</div>
+      <h1>Fresher Se Intermediate Tak Profitable Trading Backup Plan</h1>
+      <p>
+        Candlestick clarity, Fibonacci & support-resistance zones, stop-loss psychology, aur false breakout trap
+        identification ke saath fresher se intermediate level tak ek step-by-step roadmap.
+      </p>
+      <p style="font-size:13.5px; color:#fde047;">
+        <strong>Highlights:</strong> Clear Entry-Exit Rules • Risk-Reward Discipline • SL Fear Control • Instant PDF Unlock
+      </p>
+    </div>
+
+    <!-- 3D Plan Cards -->
+    <div class="grid">
+      <div class="box plan-card" id="card-199" onclick="openPlanModal('199')">
+        <div class="tag">PLAN 1 • SINGLE PDF</div>
+        <h2 style="margin:4px 0; color:#ffd700;">Candlestick & Price Action</h2>
+        <div class="price">₹199</div>
+        <ul>
+          <li>Complete Candlestick Patterns and Price Action Guide</li>
+        </ul>
+        <button class="btn btn-gold" type="button">Buy ₹199 & Open QR</button>
+      </div>
+
+      <div class="box plan-card" id="card-259" onclick="openPlanModal('259')">
+        <div class="tag">PLAN 2 • 2-PDF COMBO</div>
+        <h2 style="margin:4px 0; color:#e2e8f0;">Candlestick + Fib Blueprint</h2>
+        <div class="price">₹259</div>
+        <ul>
+          <li>Complete Candlestick Patterns and Price Action Guide</li>
+          <li>Complete Fib Retracement Support Resistance and Candlestick Trading Blueprint</li>
+        </ul>
+        <button class="btn btn-gold" type="button">Buy ₹259 & Open QR</button>
+      </div>
+
+      <div class="box plan-card" id="card-899" onclick="openPlanModal('899')">
+        <div class="tag">PLAN 3 • ALL 4 PDF SET-UP</div>
+        <h2 style="margin:4px 0; color:#f472b6;">Full 4-PDF Set-Up Plan</h2>
+        <div class="price">₹899</div>
+        <ul>
+          <li>Complete Candlestick Patterns and Price Action Guide</li>
+          <li>Complete Fib Retracement Support Resistance and Candlestick Trading Blueprint</li>
+          <li>Fearless Trade Entry and Stop-Loss Psychology Guide</li>
+          <li>Market Manipulation False Breakout and Stop-Loss Hunting Guide</li>
+        </ul>
+        <button class="btn btn-gold" type="button">Buy ₹899 & Open QR</button>
+      </div>
+    </div>
+
+    <!-- Disclaimer & No Refund Policy -->
+    <div class="box disclaimer-box">
+      <h3 style="margin:0 0 8px; color:#f472b6;">⚠️ Important Disclaimer & No Refund Policy</h3>
+      <p style="margin:6px 0; color:#f1f5f9;">
+        <strong>Educational Purpose Disclaimer:</strong> This document is strictly for knowledge gain and educational purposes only, and is not intended for taking any financial or trading risk. We are not SEBI-registered advisors. If you take any trade or financial risk in the market, it will be solely your own responsibility.
+      </p>
+      <p style="margin:6px 0; color:#fde047;">
+        <strong>No Refund Policy:</strong> Because these are instant-access digital PDF guides, all purchases are final. Strictly no refunds or cancellations are provided once an order is placed.
+      </p>
+    </div>
+
+    <!-- Admin Portal Login -->
+    <div class="box">
+      <strong style="color:#ffd700;">Admin Portal Access</strong>
+      <input type="text" id="admUser" placeholder="Username ID" />
+      <input type="password" id="admPass" placeholder="Password" />
+      <button class="btn btn-gray" type="button" onclick="doAdmin()">Unlock Portal as Admin</button>
+      <div class="msg" id="admMsg"></div>
+      <div id="adminFilesArea" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="box center">
+      <strong>Thanks for visiting our page. Learn with discipline!</strong>
+    </div>
+  </div>
+
+  <!-- Direct QR Payment & Instant Download Modal -->
+  <div class="modal-backdrop" id="payModal" onclick="closeModal(event)">
+    <div class="modal-card" onclick="event.stopPropagation()">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span class="tag" style="margin:0;">INSTANT QR CHECKOUT</span>
+        <button type="button" onclick="closeModal()" style="background:none; border:none; color:#fff; font-size:20px; cursor:pointer;">✕</button>
+      </div>
+      <h2 id="modalPlanTitle" style="margin:10px 0 4px; color:#ffd700;">Plan Selected</h2>
+      <div id="planInfo" style="font-weight:800; color:#38bdf8; margin-bottom:8px;">Selected: ₹199 • Final Amount: ₹199</div>
+
+      <input type="text" id="offerCode" placeholder="Offer code: TRADER10 (10% Off)" />
+      <button class="btn btn-gray" type="button" onclick="applyOffer()">Apply 10% Offer (TRADER10)</button>
+      <div class="msg" id="offerMsg"></div>
+
+      <div class="qr-box">
+        <img
+          id="qrImg"
+          src="11612.png"
+          alt="Scan QR to Pay"
+          onerror="this.src='https://api.qrserver.com/v1/create-qr-code/?size=195x195&data=' + encodeURIComponent(buildUpiUri())"
+        />
+        <div style="font-size:12px; font-weight:800; color:#0f172a;">Scan QR with any UPI App</div>
+      </div>
+
+      <a id="payLink" class="btn btn-green" href="#">Pay Directly via UPI App</a>
+
+      <input type="text" id="utrBox" placeholder="Enter 12-digit UTR / Transaction ID after payment" />
+      <button class="btn btn-gold" type="button" onclick="verifyPay()">Verify Payment & Download PDFs</button>
+      <div class="msg" id="payMsg"></div>
+
+      <div id="filesArea"></div>
+    </div>
+  </div>
+
+  <!-- Chat Support Button & Panel -->
+  <button class="chat-fab" type="button" onclick="toggleChat()">💬 Plan & Quality Support</button>
+  <div class="chat-panel" id="chatPanel">
+    <div class="chat-head">
+      <span>Trading Blueprints Support</span>
+      <button type="button" onclick="toggleChat()" style="background:none; border:none; font-weight:900; cursor:pointer;">✕</button>
+    </div>
+    <div class="chat-body" id="chatBody">
+      <div class="bot-msg">
+        🙏 Namaste! Main aapki kaise madad kar sakta hoon? Niche diye gaye buttons par click karke sabhi plans aur education quality ki details dekhein:
+      </div>
+    </div>
+    <div class="chat-quick">
+      <button class="chip" type="button" onclick="askSupport('plans')">📚 Sabhi 3 Plans</button>
+      <button class="chip" type="button" onclick="askSupport('quality')">⭐ Education Quality</button>
+      <button class="chip" type="button" onclick="askSupport('beginner')">🔰 Fresher ke liye kaunsa?</button>
+      <button class="chip" type="button" onclick="askSupport('refund')">⚠️ Refund & Risk Policy</button>
+    </div>
+  </div>
+
+  <script>
+    const PRICES = { "199": 199, "259": 259, "899": 899 };
+    const PLAN_NAMES = {
+      "199": "Plan 1: Candlestick & Price Action",
+      "259": "Plan 2: Candlestick + Fib Blueprint",
+      "899": "Plan 3: Full 4-PDF Set-Up Plan"
+    };
+    const PDF_SETS = {
+      "199": ["Complete Candlestick Patterns and Price Action Guide.pdf"],
+      "259": [
+        "Complete Candlestick Patterns and Price Action Guide.pdf",
+        "Complete Fib Retracement Support Resistance and Candlestick Trading Blueprint.pdf"
+      ],
+      "899": [
+        "Complete Candlestick Patterns and Price Action Guide.pdf",
+        "Complete Fib Retracement Support Resistance and Candlestick Trading Blueprint.pdf",
+        "Fearless Trade Entry and Stop-Loss Psychology Guide.pdf",
+        "Market Manipulation False Breakout and Stop-Loss Hunting Guide.pdf"
+      ]
+    };
+
+    let currentPlan = "199";
+    let hasDiscount = false;
+    let audioStarted = false;
+    let userMutedSong = false;
+
+    const songEl = document.getElementById("portalSong");
+    const musicBtn = document.getElementById("musicToggleBtn");
+    songEl.volume = 0.65;
+
+    function startPortalAudio() {
+      if (!userMutedSong && songEl.paused) {
+        songEl.play().then(() => {
+          musicBtn.textContent = "🎵 Music: ON";
+        }).catch(() => {});
+      }
+      if (!audioStarted) {
+        audioStarted = true;
+        speakNamaste();
+      }
+    }
+
+    function toggleSong() {
+      if (songEl.paused) {
+        userMutedSong = false;
+        songEl.play();
+        musicBtn.textContent = "🎵 Music: ON";
+      } else {
+        userMutedSong = true;
+        songEl.pause();
+        musicBtn.textContent = "🔇 Music: OFF";
+      }
+    }
+
+    function play3DSound() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(320, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(680, ctx.currentTime + 0.18);
+        gain.gain.setValueAtTime(0.18, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.25);
+      } catch (e) {}
+    }
+
+    function speakNamaste() {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(
+          "Namaste! Welcome to Trading Blueprints. Select your learning plan to get started."
+        );
+        msg.lang = "en-IN";
+        msg.rate = 0.95;
+        window.speechSynthesis.speak(msg);
+      }
+    }
+
+    // Try autoplay immediately on page load
+    window.addEventListener("load", () => {
+      songEl.play().then(() => {
+        musicBtn.textContent = "🎵 Music: ON";
+      }).catch(() => {
+        musicBtn.textContent = "▶️ Tap to Play Music";
+      });
+      setTimeout(speakNamaste, 600);
+    });
+
+    function finalPrice() {
+      const base = PRICES[currentPlan];
+      return hasDiscount ? Math.round(base * 0.9) : base;
+    }
+
+    function buildUpiUri() {
+      const amt = finalPrice();
+      return `upi://pay?pa=Rahulp6453@ybl&pn=Rahul%20Upadhyay&am=${amt}&cu=INR`;
+    }
+
+    function refreshModalUI() {
+      const amt = finalPrice();
+      document.getElementById("modalPlanTitle").textContent = PLAN_NAMES[currentPlan];
+      document.getElementById("planInfo").textContent =
+        `Selected: ₹${currentPlan} • Final Amount: ₹${amt}${hasDiscount ? " (10% TRADER10 Off)" : ""}`;
+      const payBtn = document.getElementById("payLink");
+      payBtn.textContent = `Pay ₹${amt} via UPI App`;
+      payBtn.href = buildUpiUri();
+
+      const qrImg = document.getElementById("qrImg");
+      qrImg.src = "https://api.qrserver.com/v1/create-qr-code/?size=195x195&data=" + encodeURIComponent(buildUpiUri());
+    }
+
+    function openPlanModal(planId) {
+      startPortalAudio();
+      currentPlan = planId;
+      play3DSound();
+      document.querySelectorAll(".plan-card").forEach(el => el.classList.remove("active-3d"));
+      document.getElementById("card-" + planId)?.classList.add("active-3d");
+
+      document.getElementById("filesArea").style.display = "none";
+      document.getElementById("payMsg").textContent = "";
+      document.getElementById("utrBox").value = "";
+
+      refreshModalUI();
+      document.getElementById("payModal").style.display = "flex";
+    }
+
+    function closeModal(e) {
+      if (!e || e.target.id === "payModal") {
+        document.getElementById("payModal").style.display = "none";
+      }
+    }
+
+    function applyOffer() {
+      const code = document.getElementById("offerCode").value.trim().toUpperCase();
+      hasDiscount = (code === "TRADER10");
+      document.getElementById("offerMsg").textContent = hasDiscount
+        ? "TRADER10 applied! 10% discount active."
+        : "Enter TRADER10 for 10% off.";
+      refreshModalUI();
+    }
+
+    function verifyPay() {
+      const utr = document.getElementById("utrBox").value.trim();
+      if (utr.length < 6) {
+        document.getElementById("payMsg").textContent = "Please enter a valid UTR / Transaction ID.";
+        return;
+      }
+      play3DSound();
+      const area = document.getElementById("filesArea");
+      area.style.display = "block";
+      const list = PDF_SETS[currentPlan];
+      area.innerHTML = `
+        <div class="cred-box">
+          <strong>✅ Payment Confirmed (UTR: ${utr})</strong><br/>
+          Portal Login Unlocked:<br/>
+          <strong>USER ID:</strong> ADMIN<br/>
+          <strong>Password:</strong> ADMIN@RAHUL
+        </div>
+        ${list.map(name => `<a class="btn btn-green" href="${encodeURI(name)}" target="_blank" download>⬇️ Download: ${name}</a>`).join("")}
+      `;
+    }
+
+    function doAdmin() {
+      const u = document.getElementById("admUser").value.trim();
+      const p = document.getElementById("admPass").value;
+      if (u === "ADMIN" && p === "ADMIN@RAHUL") {
+        play3DSound();
+        document.getElementById("admMsg").textContent = "Admin Access Granted — All 4 Blueprints Unlocked:";
+        document.getElementById("adminFilesArea").innerHTML = PDF_SETS["899"]
+          .map(name => `<a class="btn btn-gold" href="${encodeURI(name)}" target="_blank" download>⬇️ ${name}</a>`)
+          .join("");
+      } else {
+        document.getElementById("admMsg").textContent = "Invalid Admin credentials.";
+      }
+    }
+
+    function toggleChat() {
+      startPortalAudio();
+      const panel = document.getElementById("chatPanel");
+      panel.style.display = (panel.style.display === "block") ? "none" : "block";
+      play3DSound();
+    }
+
+    function askSupport(topic) {
+      const body = document.getElementById("chatBody");
+      const replies = {
+        plans: `<strong>📚 Sabhi 3 Plans ki Jankari:</strong><br/>
+          • <b>₹199 (Plan 1):</b> Complete Candlestick Patterns & Price Action Guide.<br/>
+          • <b>₹259 (Plan 2):</b> Candlestick Guide + Fibonacci Retracement & Support-Resistance Blueprint.<br/>
+          • <b>₹899 (Plan 3):</b> All 4 PDFs (Price Action + Fib Blueprint + Stop-Loss Psychology + False Breakout & SL Hunting Guide).`,
+        quality: `<strong>⭐ Education Quality:</strong><br/>
+          Har PDF ko fresher se intermediate traders ke liye step-by-step chart logic, clear entry-exit rules, risk-reward discipline aur real market trap examples ke saath design kiya gaya hai — bina kisi confusing jargon ke.`,
+        beginner: `<strong>🔰 Fresher ke liye Best Choice:</strong><br/>
+          Agar aap bilkul shuruat kar rahe hain to <b>₹259 Combo</b> se candlestick aur support-resistance ki strong foundation banayein, ya complete psychology aur trap protection ke liye <b>₹899 Full Set-Up</b> chunein.`,
+        refund: `<strong>⚠️ Policy & Risk Note:</strong><br/>
+          Yeh documents sirf educational knowledge gain ke liye hain. Market risk aapki apni zimmedari hogi. Digital PDF hone ke karan is par <b>No Refund Policy</b> lagu hoti hai.`
+      };
+      const div = document.createElement("div");
+      div.className = "bot-msg";
+      div.innerHTML = replies[topic];
+      body.appendChild(div);
+      body.scrollTop = body.scrollHeight;
+    }
+
+    const canvas = document.getElementById("bgCanvas");
+    const ctx = canvas.getContext("2d");
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let particles = [];
+    const palette = ["#ffd700", "#e2e8f0", "#38bdf8", "#f472b6", "#a855f7", "#34d399"];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      particles = Array.from({ length: 65 }, (_, i) => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight,
+        r: 1.5 + Math.random() * 2.8,
+        vx: (Math.random() - 0.5) * 0.7,
+        vy: (Math.random() - 0.5) * 0.7,
+        color: palette[i % palette.length]
+      }));
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    let waveT = 0;
+    function animateBg() {
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      waveT += 0.018;
+
+      ["#ffd700", "#e2e8f0", "#a855f7"].forEach((col, idx) => {
+        ctx.beginPath();
+        for (let x = 0; x <= window.innerWidth; x += 18) {
+          const y = window.innerHeight * (0.25 + idx * 0.25) +
+            Math.sin(x * 0.005 + waveT + idx * 1.4) * 42;
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = col;
+        ctx.globalAlpha = 0.22;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > window.innerWidth) p.vx *= -1;
+        if (p.y < 0 || p.y > window.innerHeight) p.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = 0.65;
+        ctx.fill();
+      });
+
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(animateBg);
+    }
+    animateBg();
+  </script>
+</body>
+</html>
